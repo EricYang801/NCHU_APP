@@ -9,9 +9,14 @@ import SwiftUI
 
 @main
 struct NCHU_APPApp: App {
+    @StateObject private var appManager = AppManager.shared
+    @StateObject private var assignmentManager = AssignmentManager.shared
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(appManager)
+                .environmentObject(assignmentManager)
         }
     }
 }

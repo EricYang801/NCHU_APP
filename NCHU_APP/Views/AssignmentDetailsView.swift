@@ -1,42 +1,73 @@
 import SwiftUI
 
 struct AssignmentDetailsView: View {
-    @Environment(\.presentationMode) var presentationMode
-    @ObservedObject var assignmentStore: AssignmentStore
+    @EnvironmentObject var assignmentManager: AssignmentManager
+    let assignment: Assignment
     
     var body: some View {
-        ZStack {
-            Theme.Colors.background
-                .ignoresSafeArea()
-            
-            VStack(spacing: 0) {
-                NavigationBarView(
-                    title: "作業列表",
-                    onBack: { presentationMode.wrappedValue.dismiss() }
-                )
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text(assignment.title)
+                    .font(.title)
+                    .padding(.bottom, 8)
                 
-                ScrollView {
-                    VStack(spacing: Theme.Layout.spacing) {
-                        ForEach(assignmentStore.assignments) { assignment in
-                            AssignmentCard(assignment: assignment)
-                        }
-                    }
-                    .padding()
+                Group {
+                    InfoRow(title: "課程名稱", value: assignment.source)
+                    InfoRow(title: "繳交期限", value: assignment.deadline)
                 }
+                .padding(.horizontal)
+                
+                Divider()
+                
+                // 作業連結
+                Link(destination: URL(string: assignment.titleLink)!) {
+                    HStack {
+                        Text("查看作業詳情")
+                        Image(systemName: "arrow.right.circle.fill")
+                    }
+                    .foregroundColor(.blue)
+                }
+                .padding()
+                .background(Color(.systemBackground))
+                .cornerRadius(10)
+                .shadow(radius: 2)
+                
+                Spacer()
             }
+            .padding()
         }
-        .navigationBarHidden(true)
-        .gesture(
-            DragGesture()
-                .onEnded { gesture in
-                    if gesture.translation.width > 100 {
-                        presentationMode.wrappedValue.dismiss()
-                    }
-                }
-        )
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+struct InfoRow: View {
+    let title: String
+    let value: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            Text(value)
+                .font(.body)
+        }
     }
 }
 
 #Preview {
-    AssignmentDetailsView(assignmentStore: AssignmentStore())
+    NavigationView {
+        AssignmentDetailsView(
+            assignment: Assignment(
+                from: DashboardEvent(
+                    title: "測試作業",
+                    titleLink: "https://example.com",
+                    source: "測試課程",
+                    sourceLink: "https://example.com",
+                    deadline: "2024/03/22"
+                )
+            )
+        )
+        .environmentObject(AssignmentManager.shared)
+    }
 }

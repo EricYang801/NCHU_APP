@@ -28,4 +28,6 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+        .environmentObject(AppManager.shared)
+        .environmentObject(AssignmentManager.shared)
 }

@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		F59FB47B2D8DC81A00F84236 /* SwiftSoup in Frameworks */ = {isa = PBXBuildFile; productRef = F59FB47A2D8DC81A00F84236 /* SwiftSoup */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		F58173C92D8D8F7D00C6993D /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F59FB47B2D8DC81A00F84236 /* SwiftSoup in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +117,7 @@
 			);
 			name = NCHU_APP;
 			packageProductDependencies = (
+				F59FB47A2D8DC81A00F84236 /* SwiftSoup */,
 			);
 			productName = NCHU_APP;
 			productReference = F58173B82D8D8F7B00C6993D /* NCHU_APP.app */;
@@ -195,6 +201,9 @@
 			);
 			mainGroup = F58173AF2D8D8F7B00C6993D;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				F59FB4792D8DC81A00F84236 /* XCRemoteSwiftPackageReference "SwiftSoup" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F58173B92D8D8F7B00C6993D /* Products */;
 			projectDirPath = "";
@@ -558,6 +567,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		F59FB4792D8DC81A00F84236 /* XCRemoteSwiftPackageReference "SwiftSoup" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/scinfu/SwiftSoup.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.8.7;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		F59FB47A2D8DC81A00F84236 /* SwiftSoup */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F59FB4792D8DC81A00F84236 /* XCRemoteSwiftPackageReference "SwiftSoup" */;
+			productName = SwiftSoup;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = F58173B02D8D8F7B00C6993D /* Project object */;
 }

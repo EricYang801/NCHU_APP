@@ -3,7 +3,7 @@ import CoreGraphics
 import CoreImage
 
 struct OCRCaptcha {
-    // 常數定義
+    // MARK: - Constants
     private static let TOP_ALIGN = 2
     private static let LEFT_ALIGN = 11
     private static let CODE_W = 13
@@ -11,8 +11,129 @@ struct OCRCaptcha {
     private static let CODE_COUNT = 6
     private static let THRESHOLD = 115
     
-    // 完整的數字模板定義
-    private static let CODE_NUMBERS: [String: [[Int]]] = [
+    // MARK: - Properties
+    private static var captchaImageData: Data?
+    
+    // MARK: - Public Methods
+    static func setCaptchaData(_ data: Data) {
+        captchaImageData = data
+    }
+    
+    static func processCaptcha() throws -> String {
+        guard let imageData = captchaImageData else {
+            throw AppError.captchaProcessFailed
+        }
+        
+        let binaryMatrix = try convertImageToBinaryMatrix(imageData)
+        var result = ""
+        
+        for i in 0..<CODE_COUNT {
+            let startX = LEFT_ALIGN + i * CODE_W
+            let digitMatrix = extractDigitMatrix(from: binaryMatrix, startX: startX)
+            if let digit = recognizeDigit(digitMatrix) {
+                result += digit
+            }
+        }
+        
+        guard result.count == CODE_COUNT else {
+            throw AppError.captchaProcessFailed
+        }
+        
+        return result
+    }
+    
+    // MARK: - Private Helper Methods
+    private static func convertImageToBinaryMatrix(_ imageData: Data) throws -> [[Int]] {
+        guard let image = CIImage(data: imageData) else {
+            throw AppError.captchaProcessFailed
+        }
+        
+        let context = CIContext()
+        guard let cgImage = context.createCGImage(image, from: image.extent) else {
+            throw AppError.captchaProcessFailed
+        }
+        
+        let width = cgImage.width
+        let height = cgImage.height
+        let bytesPerRow = width * 4
+        let bitsPerComponent = 8
+        
+        var rawData = [UInt8](repeating: 0, count: height * bytesPerRow)
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        
+        guard let context = CGContext(data: &rawData,
+                                    width: width,
+                                    height: height,
+                                    bitsPerComponent: bitsPerComponent,
+                                    bytesPerRow: bytesPerRow,
+                                    space: colorSpace,
+                                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
+            throw AppError.captchaProcessFailed
+        }
+        
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+        
+        var binaryMatrix = [[Int]](repeating: [Int](repeating: 0, count: width), count: height)
+        
+        for y in 0..<height {
+            for x in 0..<width {
+                let offset = (y * bytesPerRow) + (x * 4)
+                let r = Int(rawData[offset])
+                let g = Int(rawData[offset + 1])
+                let b = Int(rawData[offset + 2])
+                let gray = (r + g + b) / 3
+                binaryMatrix[y][x] = gray < THRESHOLD ? 1 : 0
+            }
+        }
+        
+        return binaryMatrix
+    }
+    
+    private static func extractDigitMatrix(from matrix: [[Int]], startX: Int) -> [[Int]] {
+        var digitMatrix = [[Int]](repeating: [Int](repeating: 0, count: CODE_W), count: CODE_H)
+        
+        for y in 0..<CODE_H {
+            for x in 0..<CODE_W {
+                let sourceY = y + TOP_ALIGN
+                let sourceX = x + startX
+                if sourceY < matrix.count && sourceX < matrix[0].count {
+                    digitMatrix[y][x] = matrix[sourceY][sourceX]
+                }
+            }
+        }
+        
+        return digitMatrix
+    }
+    
+    private static func recognizeDigit(_ matrix: [[Int]]) -> String? {
+        var bestMatch = -1
+        var bestScore = Int.max
+        
+        for (digit, template) in digitTemplates {
+            let score = calculateMatchScore(matrix, template)
+            if score < bestScore {
+                bestScore = score
+                bestMatch = Int(digit) ?? -1
+            }
+        }
+        
+        return bestMatch >= 0 ? String(bestMatch) : nil
+    }
+    
+    private static func calculateMatchScore(_ matrix: [[Int]], _ template: [[Int]]) -> Int {
+        var score = 0
+        for y in 0..<CODE_H {
+            for x in 0..<CODE_W {
+                if matrix[y][x] != template[y][x] {
+                    score += 1
+                }
+            }
+        }
+        return score
+    }
+    
+    // MARK: - Digit Templates
+    static let digitTemplates: [String: [[Int]]] = [
         "0": [
             [0,0,0,0,1,1,1,1,1,0,0,0,0],
             [0,0,1,1,1,1,1,1,1,1,1,0,0],
@@ -59,139 +180,191 @@ struct OCRCaptcha {
             [0,0,0,0,0,0,0,1,1,0,0,0,0],
             [0,0,0,0,0,0,0,0,0,0,0,0,0]
         ],
-        // ... 其他數字模板（2-9）與上面格式相同 ...
+        "2": [
+            [0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,1,1,1,0,0,0,0,0],
+            [0,0,0,1,1,1,1,1,1,1,0,0,0],
+            [0,0,1,1,1,1,1,1,1,1,1,0,0],
+            [0,0,1,1,1,0,0,1,1,1,1,0,0],
+            [0,0,1,1,0,0,0,0,1,1,1,0,0],
+            [0,0,1,1,0,0,0,0,0,1,1,0,0],
+            [0,0,0,0,0,0,0,0,0,1,1,0,0],
+            [0,0,0,0,0,0,0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0,0,1,1,0,0,0],
+            [0,0,0,0,0,0,0,1,1,1,0,0,0],
+            [0,0,0,0,0,0,1,1,1,1,0,0,0],
+            [0,0,0,0,0,0,1,1,1,0,0,0,0],
+            [0,0,0,0,0,1,1,1,0,0,0,0,0],
+            [0,0,0,0,0,1,1,0,0,0,0,0,0],
+            [0,0,0,0,1,1,1,0,0,0,0,0,0],
+            [0,0,0,0,1,1,0,0,0,0,0,0,0],
+            [0,0,0,1,1,1,1,1,1,1,1,0,0],
+            [0,0,1,1,1,1,1,1,1,1,1,0,0],
+            [0,0,1,1,1,1,1,1,1,1,1,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0]
+        ],
+        "3": [
+            [0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,1,1,1,1,1,0,0,0,0],
+            [0,0,0,1,1,1,1,1,1,0,0,0,0],
+            [0,0,1,1,1,1,1,1,1,1,0,0,0],
+            [0,0,1,1,0,0,0,0,1,1,1,0,0],
+            [0,0,1,1,0,0,0,0,0,1,1,0,0],
+            [0,0,0,0,0,0,0,0,0,1,1,0,0],
+            [0,0,0,0,0,0,0,0,0,1,1,0,0],
+            [0,0,0,0,0,0,0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0,1,1,1,0,0,0],
+            [0,0,0,0,0,0,0,1,1,1,0,0,0],
+            [0,0,0,0,0,0,0,1,1,1,0,0,0],
+            [0,0,0,0,0,0,0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0,0,0,1,1,0,0],
+            [0,0,1,1,1,0,0,0,1,1,1,0,0],
+            [0,0,1,1,1,1,1,1,1,1,1,0,0],
+            [0,0,0,1,1,1,1,1,1,0,0,0,0],
+            [0,0,0,0,0,0,1,1,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0]
+        ],
+        "4": [
+            [0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,1,1,1,1,0,0,0],
+            [0,0,0,0,0,0,1,1,1,1,0,0,0],
+            [0,0,0,0,0,1,1,0,1,1,0,0,0],
+            [0,0,0,0,0,1,1,0,1,1,0,0,0],
+            [0,0,0,0,0,1,0,0,1,1,0,0,0],
+            [0,0,0,0,1,1,0,0,1,1,0,0,0],
+            [0,0,0,0,1,1,0,0,1,1,0,0,0],
+            [0,0,0,1,1,0,0,1,1,1,0,0,0],
+            [0,0,0,1,1,0,0,1,1,1,0,0,0],
+            [0,0,1,1,0,0,0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0,1,1,1,0,0,0],
+            [0,1,1,1,0,0,0,1,1,1,0,0,0],
+            [0,1,1,1,1,1,1,1,1,1,1,0,0],
+            [0,1,1,1,1,1,1,1,1,1,1,0,0],
+            [0,1,1,1,1,1,1,1,1,1,1,0,0],
+            [0,0,0,0,0,0,0,1,1,1,0,0,0],
+            [0,0,0,0,0,0,0,1,1,1,0,0,0],
+            [0,0,0,0,0,0,0,1,1,1,0,0,0],
+            [0,0,0,0,0,0,0,1,1,1,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0]
+        ],
+        "5": [
+            [0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,1,1,1,1,1,1,1,1,0,0,0],
+            [0,0,1,1,1,1,1,1,1,1,0,0,0],
+            [0,0,1,1,1,1,1,1,1,1,0,0,0],
+            [0,0,1,1,0,0,0,0,0,0,0,0,0],
+            [0,0,1,1,0,0,0,0,0,0,0,0,0],
+            [0,0,1,1,0,0,0,0,0,0,0,0,0],
+            [0,0,1,1,0,0,0,0,0,0,0,0,0],
+            [0,0,1,1,0,0,1,1,0,0,0,0,0],
+            [0,0,1,1,1,1,1,1,1,1,0,0,0],
+            [0,0,1,1,1,1,1,1,1,1,0,0,0],
+            [0,0,1,1,1,0,0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0,0,0,1,1,0,0],
+            [0,0,0,0,0,0,0,0,0,1,1,0,0],
+            [0,0,0,0,0,0,0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0,0,1,1,1,0,0],
+            [0,0,1,1,1,1,1,1,1,1,0,0,0],
+            [0,0,0,1,1,1,1,1,1,0,0,0,0],
+            [0,0,0,0,1,1,1,1,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0]
+        ],
+        "6": [
+            [0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,1,1,1,0,0,0],
+            [0,0,0,0,0,0,1,1,1,0,0,0,0],
+            [0,0,0,0,0,0,1,1,0,0,0,0,0],
+            [0,0,0,0,0,1,1,0,0,0,0,0,0],
+            [0,0,0,0,1,1,1,0,0,0,0,0,0],
+            [0,0,0,0,1,1,1,0,0,0,0,0,0],
+            [0,0,0,1,1,1,0,0,0,0,0,0,0],
+            [0,0,0,1,1,1,0,0,0,0,0,0,0],
+            [0,0,0,1,1,1,1,1,0,0,0,0,0],
+            [0,0,1,1,1,1,1,1,1,1,0,0,0],
+            [0,0,1,1,1,1,1,1,1,1,1,0,0],
+            [0,0,1,1,1,0,0,0,1,1,1,0,0],
+            [0,0,1,1,0,0,0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0,0,0,1,1,0,0],
+            [0,0,1,1,1,0,0,0,1,1,1,0,0],
+            [0,0,0,1,1,1,1,1,1,1,0,0,0],
+            [0,0,0,1,1,1,1,1,1,0,0,0,0],
+            [0,0,0,0,0,1,1,1,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0]
+        ],
+        "7": [
+            [0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,1,1,1,1,1,1,1,1,1,0,0],
+            [0,0,1,1,1,1,1,1,1,1,0,0,0],
+            [0,0,1,1,1,1,1,1,1,1,0,0,0],
+            [0,0,0,0,0,0,0,1,1,1,0,0,0],
+            [0,0,0,0,0,0,0,1,1,0,0,0,0],
+            [0,0,0,0,0,0,0,1,1,0,0,0,0],
+            [0,0,0,0,0,0,1,1,1,0,0,0,0],
+            [0,0,0,0,0,0,1,1,1,0,0,0,0],
+            [0,0,0,0,0,0,1,1,0,0,0,0,0],
+            [0,0,0,0,0,1,1,1,0,0,0,0,0],
+            [0,0,0,0,0,1,1,1,0,0,0,0,0],
+            [0,0,0,0,0,1,1,0,0,0,0,0,0],
+            [0,0,0,0,1,1,1,0,0,0,0,0,0],
+            [0,0,0,0,1,1,1,0,0,0,0,0,0],
+            [0,0,0,0,1,1,1,0,0,0,0,0,0],
+            [0,0,0,1,1,1,0,0,0,0,0,0,0],
+            [0,0,0,1,1,1,0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0]
+        ],
+        "8": [
+            [0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,1,1,1,1,0,0,0,0,0],
+            [0,0,0,1,1,1,1,1,1,0,0,0,0],
+            [0,0,0,1,1,1,1,1,1,1,0,0,0],
+            [0,0,1,1,1,0,0,0,1,1,1,0,0],
+            [0,0,1,1,0,0,0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0,0,0,1,1,0,0],
+            [0,0,1,1,1,0,0,0,1,1,0,0,0],
+            [0,0,0,0,1,1,1,1,1,1,0,0,0],
+            [0,0,0,1,1,1,1,1,1,0,0,0,0],
+            [0,0,1,1,1,1,1,1,1,1,0,0,0],
+            [0,0,1,1,1,0,0,0,1,1,1,0,0],
+            [0,0,1,1,0,0,0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0,0,0,1,1,0,0],
+            [0,0,1,1,1,0,0,0,1,1,1,0,0],
+            [0,0,1,1,1,1,1,1,1,1,1,0,0],
+            [0,0,0,1,1,1,1,1,1,1,0,0,0],
+            [0,0,0,0,0,1,1,1,1,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0]
+        ],
+        "9": [
+            [0,0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,1,1,1,0,0,0,0,0],
+            [0,0,0,1,1,1,1,1,1,0,0,0,0],
+            [0,0,0,1,1,1,1,1,1,1,0,0,0],
+            [0,0,1,1,1,0,0,0,1,1,1,0,0],
+            [0,0,1,1,0,0,0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0,0,1,1,1,0,0],
+            [0,0,1,1,1,1,1,1,1,1,0,0,0],
+            [0,0,0,1,1,1,1,1,1,1,0,0,0],
+            [0,0,0,0,0,1,1,1,1,0,0,0,0],
+            [0,0,0,0,0,0,0,1,1,0,0,0,0],
+            [0,0,0,0,0,0,1,1,1,0,0,0,0],
+            [0,0,0,0,0,1,1,1,0,0,0,0,0],
+            [0,0,0,0,0,1,1,0,0,0,0,0,0],
+            [0,0,0,0,1,1,1,0,0,0,0,0,0],
+            [0,0,0,0,1,1,0,0,0,0,0,0,0],
+            [0,0,0,1,1,1,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0,0]
+        ]
     ]
-    
-    static func processCaptcha() throws -> String {
-        let imageData = try getCaptcha()
-        let binaryImage = toBinary(imageData: imageData)
-        
-        let croppedImage = crop2d(
-            mat: binaryImage,
-            x: LEFT_ALIGN,
-            y: TOP_ALIGN,
-            w: CODE_W * CODE_COUNT,
-            h: CODE_H
-        )
-        
-        var numbers = ""
-        for i in 0..<CODE_COUNT {
-            let codeImage = crop2d(
-                mat: croppedImage,
-                x: CODE_W * i,
-                y: 0,
-                w: CODE_W,
-                h: CODE_H
-            )
-            if let predicted = predictCode(codeImage: codeImage) {
-                numbers += predicted
-            }
-        }
-        
-        return numbers
-    }
-    
-    private static func getCaptcha() throws -> [[Int]] {
-        guard let image = loadImage(from: "captcha.png") else {
-            throw OCRError.imageLoadFailed
-        }
-        return convertToGrayscale(image)
-    }
-    
-    private static func loadImage(from path: String) -> CGImage? {
-        guard let url = URL(fileURLWithPath: path),
-              let source = CGImageSourceCreateWithURL(url as CFURL, nil),
-              let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
-            return nil
-        }
-        return image
-    }
-    
-    private static func convertToGrayscale(_ image: CGImage) -> [[Int]] {
-        let width = image.width
-        let height = image.height
-        let bytesPerPixel = 4
-        let bytesPerRow = width * bytesPerPixel
-        let bitsPerComponent = 8
-        
-        var pixels = [UInt8](repeating: 0, count: width * height * bytesPerPixel)
-        
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-        let context = CGContext(
-            data: &pixels,
-            width: width,
-            height: height,
-            bitsPerComponent: bitsPerComponent,
-            bytesPerRow: bytesPerRow,
-            space: colorSpace,
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        )
-        
-        let rect = CGRect(x: 0, y: 0, width: width, height: height)
-        context?.draw(image, in: rect)
-        
-        var result = [[Int]]()
-        for y in 0..<height {
-            var row = [Int]()
-            for x in 0..<width {
-                let offset = (y * width + x) * bytesPerPixel
-                let r = Int(pixels[offset])
-                let g = Int(pixels[offset + 1])
-                let b = Int(pixels[offset + 2])
-                // 轉換為灰度值
-                let gray = (r + g + b) / 3
-                row.append(gray)
-            }
-            result.append(row)
-        }
-        
-        return result
-    }
-    
-    private static func toBinary(imageData: [[Int]], threshold: Int = THRESHOLD) -> [[Int]] {
-        return imageData.map { row in
-            row.map { pixel in
-                pixel < threshold ? 1 : 0
-            }
-        }
-    }
-    
-    private static func crop2d(mat: [[Int]], x: Int, y: Int, w: Int, h: Int) -> [[Int]] {
-        var result = [[Int]]()
-        for i in y..<(y + h) {
-            var row = [Int]()
-            for j in x..<(x + w) {
-                row.append(mat[i][j])
-            }
-            result.append(row)
-        }
-        return result
-    }
-    
-    private static func predictCode(codeImage: [[Int]]) -> String? {
-        var minIndex: String?
-        var minDiff = CODE_W * CODE_H
-        
-        for (number, template) in CODE_NUMBERS {
-            var diffSum = 0
-            for i in 0..<CODE_H {
-                for j in 0..<CODE_W {
-                    diffSum += abs(codeImage[i][j] - template[i][j])
-                }
-            }
-            
-            if diffSum < minDiff {
-                minDiff = diffSum
-                minIndex = number
-            }
-        }
-        
-        return minIndex
-    }
-}
-
-enum OCRError: Error {
-    case imageLoadFailed
 }
 
 // CGImage擴展

@@ -149,34 +149,6 @@ struct InfoCard<Content: View>: View {
     }
 }
 
-struct InfoRow: View {
-    let title: String
-    let value: String
-    
-    var body: some View {
-        HStack {
-            Text(title)
-                .font(.system(size: Theme.FontSize.small))
-                .foregroundColor(Theme.Colors.textSecondary)
-            Spacer()
-            Text(value)
-                .font(.system(size: Theme.FontSize.small))
-                .foregroundColor(Theme.Colors.textPrimary)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-    }
-}
-
-// MARK: - Button Styles
-struct ScaleButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
-            .animation(.easeInOut(duration: 0.2), value: configuration.isPressed)
-    }
-}
-
 // MARK: - Section Views
 struct SettingSection<Content: View>: View {
     let title: String
@@ -200,39 +172,11 @@ struct SettingSection<Content: View>: View {
     }
 }
 
-// MARK: - Assignment Views
-struct AssignmentCard: View {
-    let assignment: Assignment
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(assignment.title)
-                .font(.system(size: Theme.FontSize.regular, weight: .semibold))
-                .foregroundColor(Theme.Colors.textPrimary)
-            
-            VStack(alignment: .leading, spacing: 8) {
-                InfoRow(title: "課程名稱", value: assignment.courseName)
-                InfoRow(title: "繳交期限", value: assignment.dueDate)
-                InfoRow(title: "作業說明", value: assignment.description)
-            }
-        }
-        .padding(Theme.Layout.padding)
-        .cardStyle()
-    }
-}
-
-struct HomeworkItem: View {
-    let assignment: Assignment
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(assignment.title)
-                .font(.system(size: Theme.FontSize.regular))
-                .foregroundColor(Theme.Colors.textPrimary)
-            Text("繳交期限：\(assignment.dueDate)")
-                .font(.system(size: Theme.FontSize.small))
-                .foregroundColor(Theme.Colors.textSecondary)
-        }
-        .homeworkItemStyle()
+// MARK: - Button Styles
+struct ScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .animation(.easeInOut(duration: 0.2), value: configuration.isPressed)
     }
 } 
