@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct AssignmentDetailsView: View {
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var assignmentManager: AssignmentManager
     @StateObject private var calendarManager = CalendarManager.shared
     @State private var showingAlert = false
@@ -12,6 +13,7 @@ struct AssignmentDetailsView: View {
             VStack(alignment: .leading, spacing: 16) {
                 Text(assignment.title)
                     .font(.title)
+                    .foregroundColor(Theme.Colors.textPrimary)
                     .padding(.bottom, 8)
                 
                 Group {
@@ -28,12 +30,15 @@ struct AssignmentDetailsView: View {
                         Text("查看作業詳情")
                         Image(systemName: "arrow.right.circle.fill")
                     }
-                    .foregroundColor(.blue)
+                    .foregroundColor(Color(UIColor.systemBlue))
                 }
                 .padding()
-                .background(Color(.systemBackground))
-                .cornerRadius(10)
-                .shadow(radius: 2)
+                .background(Theme.Colors.cardBackground)
+                .cornerRadius(Theme.Layout.cornerRadius)
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.Layout.cornerRadius)
+                        .stroke(Theme.Colors.border, lineWidth: 0.5)
+                )
                 
                 // 加入行事曆按鈕
                 Button(action: {
@@ -55,8 +60,8 @@ struct AssignmentDetailsView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.blue)
-                    .cornerRadius(10)
+                    .background(Color(UIColor.systemBlue))
+                    .cornerRadius(Theme.Layout.cornerRadius)
                 }
                 .padding(.top)
                 
@@ -64,7 +69,20 @@ struct AssignmentDetailsView: View {
             }
             .padding()
         }
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: { dismiss() }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .medium))
+                        Text("返回")
+                            .font(.system(size: Theme.FontSize.regular))
+                    }
+                    .foregroundColor(Color(UIColor.systemBlue))
+                }
+            }
+        }
         .alert("成功", isPresented: $showingAlert) {
             Button("確定", role: .cancel) { }
         } message: {
@@ -94,9 +112,10 @@ struct InfoRow: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(Theme.Colors.textSecondary)
             Text(value)
                 .font(.body)
+                .foregroundColor(Theme.Colors.textPrimary)
         }
     }
 }

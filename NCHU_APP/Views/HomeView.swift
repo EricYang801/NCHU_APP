@@ -54,12 +54,18 @@ struct HomeView: View {
                                 HStack {
                                     Text("查看全部作業")
                                         .font(.headline)
+                                        .foregroundColor(Theme.Colors.textPrimary)
                                     Image(systemName: "chevron.right")
+                                        .foregroundColor(Theme.Colors.textPrimary)
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(Color(.systemGray6))
-                                .cornerRadius(10)
+                                .background(Theme.Colors.cardBackground)
+                                .cornerRadius(Theme.Layout.cornerRadius)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: Theme.Layout.cornerRadius)
+                                        .stroke(Theme.Colors.border, lineWidth: 0.5)
+                                )
                             }
                         }
                     }
@@ -139,20 +145,19 @@ struct AssignmentCard: View {
             Text(assignment.title)
                 .font(.headline)
                 .lineLimit(2)
+                .foregroundColor(Theme.Colors.textPrimary)
             
             Text(assignment.source)
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(Theme.Colors.textSecondary)
             
             Text("繳交期限：\(assignment.deadline)")
                 .font(.caption)
-                .foregroundColor(.red)
+                .foregroundColor(Theme.Colors.dateText)
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.systemBackground))
-        .cornerRadius(10)
-        .shadow(radius: 2)
+        .homeworkItemStyle()
     }
 }
 
@@ -169,7 +174,7 @@ struct TabBarButton: View {
             Text(text)
                 .font(.system(size: Theme.FontSize.small))
         }
-        .foregroundColor(isSelected ? Theme.Colors.primary : Theme.Colors.textSecondary)
+        .foregroundColor(isSelected ? Theme.Colors.primary : Color(UIColor.systemGray))
     }
 }
 

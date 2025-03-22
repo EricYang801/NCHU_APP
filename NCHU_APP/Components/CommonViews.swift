@@ -12,10 +12,11 @@ struct NavigationBarView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(Color(UIColor.systemBlue))
                         Text("返回")
                             .font(.system(size: Theme.FontSize.regular))
+                            .foregroundColor(Color(UIColor.systemBlue))
                     }
-                    .foregroundColor(Theme.Colors.primary)
                 }
                 Spacer()
             }
@@ -23,9 +24,10 @@ struct NavigationBarView: View {
             
             Text(title)
                 .font(.system(size: Theme.FontSize.regular, weight: .semibold))
+                .foregroundColor(Theme.Colors.textPrimary)
         }
         .padding(.vertical, 12)
-        .background(Color.white)
+        .background(Theme.Colors.cardBackground)
         .shadow(
             color: Theme.Shadows.medium.color,
             radius: Theme.Shadows.medium.radius,
@@ -52,21 +54,30 @@ struct InputField: View {
             HStack(spacing: 12) {
                 Image(systemName: icon)
                     .font(.system(size: Theme.Layout.iconSize))
-                    .foregroundColor(Theme.Colors.iconColor)
+                    .foregroundColor(Theme.Colors.textSecondary)
                 
                 if isSecure {
                     SecureField(placeholder, text: $text)
                         .font(.system(size: Theme.FontSize.regular))
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled(true)
+                        .foregroundColor(Theme.Colors.textPrimary)
                 } else {
                     TextField(placeholder, text: $text)
                         .font(.system(size: Theme.FontSize.regular))
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled(true)
+                        .foregroundColor(Theme.Colors.textPrimary)
                 }
             }
-            .inputFieldStyle()
+            .padding(.horizontal, 16)
+            .frame(height: 52)
+            .background(Theme.Colors.cardBackground)
+            .cornerRadius(Theme.Layout.cornerRadius)
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.Layout.cornerRadius)
+                    .stroke(Theme.Colors.border, lineWidth: 1)
+            )
         }
     }
 }
@@ -103,17 +114,18 @@ struct LinkButton: View {
             HStack {
                 Image(systemName: icon)
                     .font(.system(size: Theme.Layout.iconSize))
-                    .foregroundColor(Theme.Colors.iconColor)
+                    .foregroundColor(Theme.Colors.textSecondary)
                 Text(title)
                     .font(.system(size: Theme.FontSize.regular))
                     .foregroundColor(Theme.Colors.textPrimary)
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.system(size: Theme.FontSize.small))
-                    .foregroundColor(Theme.Colors.iconColor)
+                    .foregroundColor(Theme.Colors.textSecondary)
             }
             .linkButtonStyle()
         }
+        .buttonStyle(ScaleButtonStyle())
     }
 }
 

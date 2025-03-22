@@ -53,10 +53,11 @@ struct ILearningCredentialsView: View {
                                             .font(.system(size: Theme.FontSize.regular))
                                             .textInputAutocapitalization(.never)
                                             .autocorrectionDisabled(true)
+                                            .foregroundColor(Theme.Colors.textPrimary)
                                     }
                                     .padding(.horizontal, 16)
                                     .frame(height: 52)
-                                    .background(Color.white)
+                                    .background(Theme.Colors.cardBackground)
                                     .cornerRadius(Theme.Layout.cornerRadius)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: Theme.Layout.cornerRadius)
@@ -84,10 +85,11 @@ struct ILearningCredentialsView: View {
                                             .font(.system(size: Theme.FontSize.regular))
                                             .textInputAutocapitalization(.never)
                                             .autocorrectionDisabled(true)
+                                            .foregroundColor(Theme.Colors.textPrimary)
                                     }
                                     .padding(.horizontal, 16)
                                     .frame(height: 52)
-                                    .background(Color.white)
+                                    .background(Theme.Colors.cardBackground)
                                     .cornerRadius(Theme.Layout.cornerRadius)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: Theme.Layout.cornerRadius)

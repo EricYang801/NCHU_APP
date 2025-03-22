@@ -2,14 +2,19 @@ import SwiftUI
 
 enum Theme {
     enum Colors {
-        static let primary = Color(red: 0.0, green: 0.478, blue: 1.0)
-        static let primaryDark = Color(red: 0.0, green: 0.4, blue: 0.9)
-        static let background = Color(red: 0.95, green: 0.95, blue: 0.97)
-        static let cardBackground = Color.white
-        static let textPrimary = Color.black
-        static let textSecondary = Color.gray
-        static let iconColor = Color.gray
-        static let border = Color(red: 0.9, green: 0.9, blue: 0.9)
+        static let primary = Color(UIColor.systemBlue)
+        static let primaryDark = Color(UIColor.systemBlue.withAlphaComponent(0.8))
+        static let background = Color(UIColor.systemBackground)
+        static let cardBackground = Color(UIColor.secondarySystemBackground)
+        static let textPrimary = Color(UIColor.label)
+        static let textSecondary = Color(UIColor.secondaryLabel)
+        static let iconColor = Color(UIColor.systemGray)
+        static let border = Color(UIColor.separator)
+        static let dateText = Color(UIColor { traitCollection in
+            return traitCollection.userInterfaceStyle == .dark
+                ? UIColor(red: 1.0, green: 0.3, blue: 0.3, alpha: 1.0)
+                : UIColor(red: 0.8, green: 0.0, blue: 0.0, alpha: 1.0)
+        })
     }
     
     enum Gradients {
@@ -110,5 +115,9 @@ extension View {
             .frame(maxWidth: .infinity)
             .background(Theme.Colors.cardBackground)
             .cornerRadius(Theme.Layout.cornerRadius)
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.Layout.cornerRadius)
+                    .stroke(Color(UIColor.separator), lineWidth: 0.5)
+            )
     }
 } 

@@ -22,7 +22,7 @@ struct ContentView: View {
                     Text("設定")
                 }
         }
-        .accentColor(.black)
+        .tint(Color(UIColor.systemBlue))
     }
 }
 
