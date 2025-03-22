@@ -6,7 +6,79 @@ struct HomeView: View {
     @EnvironmentObject var assignmentManager: AssignmentManager
     @AppStorage("userName") private var userName: String = "你好"
     
-    private let functionButtons: [FunctionButtonModel] = [
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 8) {
+                    WelcomeHeader(userName: userName)
+                    AssignmentSection(
+                        assignments: assignmentManager.assignments,
+                        isLoading: appManager.isLoading
+                    )
+                    FunctionButtonsSection(buttons: Constants.functionButtons)
+                }
+                .padding(.horizontal)
+                .padding(.bottom)
+            }
+            .navigationDestinations()
+            .toolbar { refreshButton }
+            .overlay { loadingOverlay }
+            .errorAlert(
+                isPresented: .constant(appManager.errorMessage != nil),
+                message: appManager.errorMessage,
+                onDismiss: { appManager.errorMessage = nil }
+            )
+            .task {
+                if assignmentManager.assignments.isEmpty {
+                    await appManager.refreshAssignments()
+                }
+            }
+        }
+    }
+    
+    private var refreshButton: some ToolbarContent {
+        ToolbarItem(placement: .navigationBarTrailing) {
+            RefreshButton {
+                await appManager.refreshAssignments()
+            }
+        }
+    }
+    
+    private var loadingOverlay: some View {
+        Group {
+            if appManager.isLoading {
+                LoadingOverlay()
+            }
+        }
+    }
+}
+
+// MARK: - View Extensions
+extension View {
+    func navigationDestinations() -> some View {
+        self
+            .navigationDestination(for: Assignment.self) { assignment in
+                AssignmentDetailsView(assignment: assignment)
+            }
+            .navigationDestination(for: String.self) { value in
+                if value == "all_assignments" {
+                    AllAssignmentsView()
+                }
+            }
+    }
+    
+    func errorAlert(isPresented: Binding<Bool>, message: String?, onDismiss: @escaping () -> Void) -> some View {
+        alert("錯誤", isPresented: isPresented) {
+            Button("確定", role: .cancel, action: onDismiss)
+        } message: {
+            Text(message ?? "")
+        }
+    }
+}
+
+// MARK: - Constants
+enum Constants {
+    static let functionButtons: [FunctionButtonModel] = [
         FunctionButtonModel(
             title: "單一入口",
             url: URL(string: "https://ccidp.nchu.edu.tw/login")!
@@ -20,105 +92,125 @@ struct HomeView: View {
             url: URL(string: "https://www.nchu.edu.tw/calendar/")!
         )
     ]
+}
+
+// MARK: - Components
+struct WelcomeHeader: View {
+    let userName: String
     
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 8) {
-                    // 歡迎訊息
-                    Text("Hi, \(userName)!")
-                        .font(.title)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    if assignmentManager.assignments.isEmpty && !appManager.isLoading {
-                        VStack(spacing: 8) {
-                            Text("目前沒有作業")
-                                .font(.headline)
-                            Text("點擊右上角重新整理按鈕更新")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.vertical, 32)
-                    } else {
-                        // 作業列表（最多顯示4個）
-                        ForEach(Array(assignmentManager.assignments.prefix(3))) { assignment in
-                            NavigationLink(destination: AssignmentDetailsView(assignment: assignment)) {
-                                AssignmentCard(assignment: assignment)
-                            }
-                        }
-                        
-                        // 如果有超過4個作業，顯示查看全部按鈕
-                        if assignmentManager.assignments.count > 4 {
-                            NavigationLink(destination: AllAssignmentsView()) {
-                                HStack {
-                                    Text("查看全部作業")
-                                        .font(.headline)
-                                        .foregroundColor(Theme.Colors.textPrimary)
-                                    Image(systemName: "chevron.right")
-                                        .foregroundColor(Theme.Colors.textPrimary)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Theme.Colors.cardBackground)
-                                .cornerRadius(Theme.Layout.cornerRadius)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: Theme.Layout.cornerRadius)
-                                        .stroke(Theme.Colors.border, lineWidth: 0.5)
-                                )
-                            }
-                        }
-                    }
-                    
-                    // 功能按鈕
-                    ForEach(functionButtons) { button in
-                        LinkButton(
-                            title: button.title,
-                            icon: "link"
-                        ) {
-                            UIApplication.shared.open(button.url)
-                        }
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.bottom)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        Task {
-                            await appManager.refreshAssignments()
-                        }
-                    }) {
-                        Image(systemName: "arrow.clockwise")
-                    }
-                }
-            }
-            .overlay {
-                if appManager.isLoading {
-                    ProgressView()
-                        .scaleEffect(1.5)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Color.black.opacity(0.2))
-                }
-            }
-            .alert("錯誤", isPresented: .constant(appManager.errorMessage != nil)) {
-                Button("確定", role: .cancel) {
-                    appManager.errorMessage = nil
-                }
-            } message: {
-                Text(appManager.errorMessage ?? "")
-            }
-            .task {
-                if assignmentManager.assignments.isEmpty {
-                    await appManager.refreshAssignments()
-                }
+        Text("Hi, \(userName)!")
+            .font(.title)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct AssignmentSection: View {
+    let assignments: [Assignment]
+    let isLoading: Bool
+    
+    var body: some View {
+        Group {
+            if assignments.isEmpty && !isLoading {
+                EmptyAssignmentView()
+            } else {
+                AssignmentList(assignments: assignments)
             }
         }
     }
 }
 
-// 新增顯示全部作業的視圖
+struct EmptyAssignmentView: View {
+    var body: some View {
+        VStack(spacing: 8) {
+            Text("目前沒有作業")
+                .font(.headline)
+            Text("點擊右上角重新整理按鈕更新")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.vertical, 32)
+    }
+}
+
+struct AssignmentList: View {
+    let assignments: [Assignment]
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            ForEach(Array(assignments.prefix(3))) { assignment in
+                NavigationLink(value: assignment) {
+                    AssignmentCard(assignment: assignment)
+                }
+            }
+            
+            if assignments.count > 4 {
+                ViewAllAssignmentsButton()
+            }
+        }
+    }
+}
+
+struct ViewAllAssignmentsButton: View {
+    var body: some View {
+        NavigationLink(value: "all_assignments") {
+            HStack {
+                Text("查看全部作業")
+                    .font(.headline)
+                    .foregroundColor(Theme.Colors.textPrimary)
+                Image(systemName: "chevron.right")
+                    .foregroundColor(Theme.Colors.textPrimary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(Theme.Colors.cardBackground)
+            .cornerRadius(Theme.Layout.cornerRadius)
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.Layout.cornerRadius)
+                    .stroke(Theme.Colors.border, lineWidth: 0.5)
+            )
+        }
+    }
+}
+
+struct FunctionButtonsSection: View {
+    let buttons: [FunctionButtonModel]
+    
+    var body: some View {
+        ForEach(buttons) { button in
+            LinkButton(
+                title: button.title,
+                icon: "link"
+            ) {
+                UIApplication.shared.open(button.url)
+            }
+        }
+    }
+}
+
+struct RefreshButton: View {
+    let action: () async -> Void
+    
+    var body: some View {
+        Button(action: {
+            Task { await action() }
+        }) {
+            Image(systemName: "arrow.clockwise")
+        }
+    }
+}
+
+struct LoadingOverlay: View {
+    var body: some View {
+        ProgressView()
+            .scaleEffect(1.5)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.black.opacity(0.2))
+    }
+}
+
+// MARK: - Supporting Views
 struct AllAssignmentsView: View {
     @EnvironmentObject var assignmentManager: AssignmentManager
     
@@ -126,7 +218,7 @@ struct AllAssignmentsView: View {
         ScrollView {
             VStack(spacing: 16) {
                 ForEach(assignmentManager.assignments) { assignment in
-                    NavigationLink(destination: AssignmentDetailsView(assignment: assignment)) {
+                    NavigationLink(value: assignment) {
                         AssignmentCard(assignment: assignment)
                     }
                 }
@@ -158,23 +250,6 @@ struct AssignmentCard: View {
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
         .homeworkItemStyle()
-    }
-}
-
-// MARK: - TabBarButton
-struct TabBarButton: View {
-    let icon: String
-    let text: String
-    let isSelected: Bool
-    
-    var body: some View {
-        VStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.system(size: Theme.FontSize.regular))
-            Text(text)
-                .font(.system(size: Theme.FontSize.small))
-        }
-        .foregroundColor(isSelected ? Theme.Colors.primary : Color(UIColor.systemGray))
     }
 }
 

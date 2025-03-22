@@ -1,6 +1,6 @@
 import Foundation
 
-struct Assignment: Identifiable, Codable {
+struct Assignment: Identifiable, Codable, Hashable {
     let id: UUID
     let title: String
     let titleLink: String
@@ -33,22 +33,19 @@ class AssignmentManager: ObservableObject {
     }
     
     func updateAssignments(from events: [DashboardEvent]) {
-        let newAssignments = events.map { Assignment(from: $0) }
-        assignments = newAssignments
+        assignments = events.map { Assignment(from: $0) }
         saveAssignments()
     }
     
     private func saveAssignments() {
-        if let encoded = try? JSONEncoder().encode(assignments) {
-            userDefaults.set(encoded, forKey: assignmentsKey)
-        }
+        guard let encoded = try? JSONEncoder().encode(assignments) else { return }
+        userDefaults.set(encoded, forKey: assignmentsKey)
     }
     
     private func loadAssignments() {
-        if let data = userDefaults.data(forKey: assignmentsKey),
-           let decoded = try? JSONDecoder().decode([Assignment].self, from: data) {
-            assignments = decoded
-        }
+        guard let data = userDefaults.data(forKey: assignmentsKey),
+              let decoded = try? JSONDecoder().decode([Assignment].self, from: data) else { return }
+        assignments = decoded
     }
     
     func clearAssignments() {

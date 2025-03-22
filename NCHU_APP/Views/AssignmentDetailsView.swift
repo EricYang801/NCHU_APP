@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AssignmentDetailsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) private var presentationMode
     @EnvironmentObject var assignmentManager: AssignmentManager
     @StateObject private var calendarManager = CalendarManager.shared
     @State private var showingAlert = false
@@ -72,7 +73,9 @@ struct AssignmentDetailsView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
-                Button(action: { dismiss() }) {
+                Button(action: {
+                    presentationMode.wrappedValue.dismiss()
+                }) {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 16, weight: .medium))

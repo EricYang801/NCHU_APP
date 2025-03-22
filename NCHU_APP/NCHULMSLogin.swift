@@ -8,9 +8,13 @@ class NCHULMSLogin {
     private let captchaURL: String
     private let headers: [String: String]
     private let keychainManager = KeychainManager.standard
+    private let maxRetries = 3
     
     init() {
-        self.session = URLSession.shared
+        let configuration = URLSessionConfiguration.default
+        configuration.timeoutIntervalForRequest = 30
+        configuration.timeoutIntervalForResource = 300
+        self.session = URLSession(configuration: configuration)
         self.loginURL = "\(baseURL)/index/login"
         self.captchaURL = "\(baseURL)/sys/libs/class/capcha/secimg.php?charLens=6&codeType=num"
         self.headers = [
@@ -38,50 +42,75 @@ class NCHULMSLogin {
     }
     
     func getCaptcha() async throws -> Data {
-        var request = URLRequest(url: URL(string: captchaURL)!)
-        headers.forEach { request.addValue($0.value, forHTTPHeaderField: $0.key) }
-        
-        let (data, response) = try await session.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw AppError.captchaFailed
+        return try await withRetry {
+            var request = URLRequest(url: URL(string: captchaURL)!)
+            headers.forEach { request.addValue($0.value, forHTTPHeaderField: $0.key) }
+            
+            let (data, response) = try await session.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                throw AppError.captchaFailed
+            }
+            return data
         }
-        return data
     }
     
     func login(account: String, password: String) async throws -> LoginResult {
-        // Get login page and CSRF token
-        let (_, csrfToken) = try await getLoginPageAndToken()
-        
-        // Get and process captcha
-        let captcha = try await processCaptchaForLogin()
-        
-        // Submit login form
-        return try await submitLoginForm(account: account, password: password, csrfToken: csrfToken, captcha: captcha)
+        return try await withRetry {
+            // Get login page and CSRF token
+            let (_, csrfToken) = try await getLoginPageAndToken()
+            
+            // Get and process captcha
+            let captcha = try await processCaptchaForLogin()
+            
+            // Submit login form
+            return try await submitLoginForm(account: account, password: password, csrfToken: csrfToken, captcha: captcha)
+        }
     }
     
     // MARK: - Dashboard Operations
     func getDashboardLastEvent() async throws -> DashboardResult {
-        var request = URLRequest(url: URL(string: "\(baseURL)/dashboard/latestEvent")!)
+        return try await withRetry {
+            var request = URLRequest(url: URL(string: "\(baseURL)/dashboard/latestEvent")!)
+            headers.forEach { request.addValue($0.value, forHTTPHeaderField: $0.key) }
+            
+            let (data, response) = try await session.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200,
+                  let html = String(data: data, encoding: .utf8) else {
+                throw AppError.invalidResponse
+            }
+            
+            return try parseDashboardEvents(from: html)
+        }
+    }
+    
+    // MARK: - Private Helper Methods
+    private func withRetry<T>(operation: () async throws -> T) async throws -> T {
+        var lastError: Error?
+        
+        for attempt in 1...maxRetries {
+            do {
+                return try await operation()
+            } catch {
+                lastError = error
+                if attempt < maxRetries {
+                    try await Task.sleep(nanoseconds: UInt64(pow(2.0, Double(attempt)) * 1_000_000_000))
+                }
+            }
+        }
+        
+        throw lastError ?? AppError.unknownError
+    }
+    
+    private func getLoginPageAndToken() async throws -> (html: String, token: String) {
+        var request = URLRequest(url: URL(string: loginURL)!)
         headers.forEach { request.addValue($0.value, forHTTPHeaderField: $0.key) }
         
         let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse,
               httpResponse.statusCode == 200,
               let html = String(data: data, encoding: .utf8) else {
-            throw AppError.invalidResponse
-        }
-        
-        return try parseDashboardEvents(from: html)
-    }
-    
-    // MARK: - Private Helper Methods
-    private func getLoginPageAndToken() async throws -> (html: String, token: String) {
-        var request = URLRequest(url: URL(string: loginURL)!)
-        headers.forEach { request.addValue($0.value, forHTTPHeaderField: $0.key) }
-        
-        let (data, _) = try await session.data(for: request)
-        guard let html = String(data: data, encoding: .utf8) else {
             throw AppError.invalidResponse
         }
         
@@ -116,13 +145,15 @@ class NCHULMSLogin {
         ]
         
         loginRequest.httpBody = loginData
-            .map { "\($0.key)=\($0.value)" }
+            .map { "\($0.key)=\($0.value)".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "" }
             .joined(separator: "&")
             .data(using: .utf8)
         
-        let (responseData, _) = try await session.data(for: loginRequest)
+        let (responseData, response) = try await session.data(for: loginRequest)
         
-        guard let json = try? JSONSerialization.jsonObject(with: responseData) as? [String: Any],
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200,
+              let json = try? JSONSerialization.jsonObject(with: responseData) as? [String: Any],
               let ret = json["ret"] as? [String: Any] else {
             throw AppError.invalidResponse
         }
@@ -177,11 +208,11 @@ class NCHULMSLogin {
                     deadlineElement.text()
                 
                 return DashboardEvent(
-                    title: title,
+                    title: title.trimmingCharacters(in: .whitespacesAndNewlines),
                     titleLink: baseURL + titleLink,
-                    source: source,
+                    source: source.trimmingCharacters(in: .whitespacesAndNewlines),
                     sourceLink: baseURL + sourceLink,
-                    deadline: deadline
+                    deadline: deadline.trimmingCharacters(in: .whitespacesAndNewlines)
                 )
             }
             
@@ -210,4 +241,4 @@ struct DashboardEvent {
 struct DashboardResult {
     let success: Bool
     let events: [DashboardEvent]
-} 
+}
