@@ -15,7 +15,7 @@ struct SettingsView: View {
                         .font(.system(size: Theme.FontSize.extraLarge, weight: .bold))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal)
-                        .padding(.top, 40)
+                        .padding(.top, 10)
                     
                     ScrollView {
                         VStack(spacing: 24) {
