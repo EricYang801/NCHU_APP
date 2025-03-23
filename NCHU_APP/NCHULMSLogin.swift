@@ -204,8 +204,8 @@ class NCHULMSLogin {
                 
                 let deadlineElement = try cols[2].select("div.text-overflow")
                 let deadline = try deadlineElement.hasAttr("title") ?
-                    deadlineElement.attr("title") :
-                    deadlineElement.text()
+                deadlineElement.attr("title") :
+                deadlineElement.text()
                 
                 return DashboardEvent(
                     title: title.trimmingCharacters(in: .whitespacesAndNewlines),

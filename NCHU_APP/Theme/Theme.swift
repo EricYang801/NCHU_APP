@@ -12,8 +12,8 @@ enum Theme {
         static let border = Color(UIColor.separator)
         static let dateText = Color(UIColor { traitCollection in
             return traitCollection.userInterfaceStyle == .dark
-                ? UIColor(red: 1.0, green: 0.3, blue: 0.3, alpha: 1.0)
-                : UIColor(red: 0.8, green: 0.0, blue: 0.0, alpha: 1.0)
+            ? UIColor(red: 1.0, green: 0.3, blue: 0.3, alpha: 1.0)
+            : UIColor(red: 0.8, green: 0.0, blue: 0.0, alpha: 1.0)
         })
     }
     

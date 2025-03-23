@@ -62,12 +62,12 @@ struct OCRCaptcha {
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         
         guard let context = CGContext(data: &rawData,
-                                    width: width,
-                                    height: height,
-                                    bitsPerComponent: bitsPerComponent,
-                                    bytesPerRow: bytesPerRow,
-                                    space: colorSpace,
-                                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
+                                      width: width,
+                                      height: height,
+                                      bitsPerComponent: bitsPerComponent,
+                                      bytesPerRow: bytesPerRow,
+                                      space: colorSpace,
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
             throw AppError.captchaProcessFailed
         }
         
