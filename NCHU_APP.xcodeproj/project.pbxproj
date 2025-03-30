@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F501D3B52D998FFF00C419F3 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = F501D3B42D998FFF00C419F3 /* README.md */; };
 		F59FB47B2D8DC81A00F84236 /* SwiftSoup in Frameworks */ = {isa = PBXBuildFile; productRef = F59FB47A2D8DC81A00F84236 /* SwiftSoup */; };
 /* End PBXBuildFile section */
 
@@ -28,6 +29,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		F501D3B42D998FFF00C419F3 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		F58173B82D8D8F7B00C6993D /* NCHU_APP.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NCHU_APP.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F58173C82D8D8F7D00C6993D /* NCHU_APPTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NCHU_APPTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F58173D22D8D8F7D00C6993D /* NCHU_APPUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NCHU_APPUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -80,6 +82,7 @@
 		F58173AF2D8D8F7B00C6993D = {
 			isa = PBXGroup;
 			children = (
+				F501D3B42D998FFF00C419F3 /* README.md */,
 				F58173BA2D8D8F7B00C6993D /* NCHU_APP */,
 				F58173CB2D8D8F7D00C6993D /* NCHU_APPTests */,
 				F58173D52D8D8F7D00C6993D /* NCHU_APPUITests */,
@@ -221,6 +224,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F501D3B52D998FFF00C419F3 /* README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
